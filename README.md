@@ -34,3 +34,18 @@ A merchant interview must confirm order volume, manual-entry time, errors, exist
 ### Repo policy
 
 Work only inside this repository. Branches are allowed for scoped changes; merge validated work to main when safe. Never add fake commits, secrets, personal data, unapproved deployments, or paid integrations.
+
+
+## Iteration 002 — Durable local review queue
+
+The stateless parser remains available. The new SQLite-backed queue remembers processed message IDs across runs, flags changed-text ID conflicts, and records explicit local approve/reject decisions with an audit trail. It never sends messages, processes payments, or fulfills orders.
+
+Run from the repository root (Python 3.10+, standard library only):
+
+    python -m unittest discover -s tests -v
+    python -m orderpilot.queue_cli --db demo.sqlite3 ingest --catalog examples/catalog.json --messages examples/messages.json
+    python -m orderpilot.queue_cli --db demo.sqlite3 list --state pending
+    python -m orderpilot.queue_cli --db demo.sqlite3 review --id sample-001 --decision approve
+    python -m orderpilot.queue_cli --db demo.sqlite3 audit --id sample-001
+
+The first ingest creates two drafts and flags the third sample message as `id_conflict` (same ID, different text). Repeated ingests do not overwrite earlier records. Only drafts with no parse issues may be locally marked approved. Approval is bookkeeping, **not** authorization to ship, charge, or message a customer. The database retains parsed line items, source IDs, message hashes, timestamps, and notes but **not raw message text**; this is data minimization, not anonymization. Keep database files private, do not commit them, and use synthetic or consented/redacted inputs only. No authentication, encryption at rest, retention policy, or multi-user isolation is implemented. See `research/2026-10-12.md` for commercial hypotheses and next validation gate.
