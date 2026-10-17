@@ -1,6 +1,6 @@
 # AI Opportunity Lab
 
-Private, research-driven experiments in AI-enabled software with credible customer and revenue hypotheses. Every prototype should have a clear problem, an explicit buyer, a safe demo, and a cheap way to validate willingness to pay.
+Public, research-driven experiments in AI-enabled software with credible customer and revenue hypotheses. Every prototype should have a clear problem, an explicit buyer, a safe demo, and a cheap way to validate willingness to pay.
 
 ## Experiment 001 — OrderPilot (approval-first social-commerce order drafts)
 
@@ -49,3 +49,20 @@ Run from the repository root (Python 3.10+, standard library only):
     python -m orderpilot.queue_cli --db demo.sqlite3 audit --id sample-001
 
 The first ingest creates two drafts and flags the third sample message as `id_conflict` (same ID, different text). Repeated ingests do not overwrite earlier records. Only drafts with no parse issues may be locally marked approved. Approval is bookkeeping, **not** authorization to ship, charge, or message a customer. The database retains parsed line items, source IDs, message hashes, timestamps, and notes but **not raw message text**; this is data minimization, not anonymization. Keep database files private, do not commit them, and use synthetic or consented/redacted inputs only. No authentication, encryption at rest, retention policy, or multi-user isolation is implemented. See `research/2026-10-12.md` for commercial hypotheses and next validation gate.
+
+
+## Iteration 004 — Merchant unit-economics and volume comparison (October 18, 2026)
+
+OrderPilot now provides **offline LKR financial experiments** to help test *whether* a proposed workflow is worth paying for before building costly live integrations. These are NOT real merchant results or verified Meta Sri Lanka rates.
+
+Run from the repository root:
+
+```bash
+python -m unittest discover -s tests -v
+python -m orderpilot.economics_cli --orders 520 --seconds-saved 62 --hourly-lkr 400 --subscription-lkr 3500
+python -m orderpilot.scenario_compare --volumes 100 300 520 1000 --seconds-saved 62 --hourly-lkr 400 --subscription-lkr 3500 --service-rate-lkr 3 --utility-rate-lkr 4 --free-messages 1000
+```
+
+Every user-supplied per-message LKR rate is an **assumed scenario input**, not a current provider quote. The zero-cost messaging workflow means no paid *outbound* API messages, not that the Meta Business Platform API is free. Read [full usage and pricing cautions](docs/unit-economics.md) and the [October 18 evidence review](research/2026-10-18.md).
+
+**Public repository safety:** This repository contains synthetic test data only; never push API keys, tokens, customer messages, phone numbers, addresses, invoices, local SQLite databases or private business files. There is no public web deployment or customer-facing order system.
