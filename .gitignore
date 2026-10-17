@@ -5,3 +5,23 @@
 __pycache__/
 *.py[cod]
 .venv/
+
+# Local secrets and environment configuration: never publish to public GitHub
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Private pilot/customer measurements, exports and local diagnostics
+private-data/
+pilot-private/
+local-exports/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.log
