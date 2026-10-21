@@ -75,9 +75,18 @@ def project(*, monthly_orders: int, seconds_saved_per_order: Any,
     per_order_labor = seconds / Decimal(3600) * hourly
     marginal_messaging = svc_count_per_order * svc_rate + util_count_per_order * util_rate
     contribution = per_order_labor - marginal_messaging
-    # Safe conservative *planning approximation*, excludes free tier and ceiling
-    # effects. Never present as exact break-even with nonlinear billing.
-    conservative_break_even = _ceil(fixed / contribution) if contribution > 0 else None
+    # A ceiling can add <1 billed message per nonzero category compared with
+    # the continuous rate. Bound both ceilings; ignoring free allowance only
+    # increases the estimated costs. This is a sustained *nonnegative* net
+    # threshold, not necessarily the earliest profitable order count.
+    rounding_overhead = (
+        (svc_rate if svc_count_per_order != svc_count_per_order.to_integral_value() else Decimal(0))
+        + (util_rate if util_count_per_order != util_count_per_order.to_integral_value() else Decimal(0))
+    )
+    conservative_break_even = (
+        max(1, _ceil((fixed + rounding_overhead) / contribution))
+        if contribution > 0 else None
+    )
     if conservative_break_even is not None and conservative_break_even > MAX_VOLUME:
         conservative_break_even = None
 
@@ -102,7 +111,7 @@ def project(*, monthly_orders: int, seconds_saved_per_order: Any,
             "These are user-entered hypotheses, not verified Sri Lankan provider prices or merchant outcomes.",
             "Free-service allowance only applies to the paid WhatsApp Business Platform when relevant; it never describes the free WhatsApp Business app.",
             "Time saved may not reduce payroll. Does not include tax, churn, support beyond entered costs, or acquisition.",
-            "Break-even is a conservative continuous-rate approximation, not exact after free allowances and whole-message rounding.",
+            "Break-even bounds a sustained nonnegative net threshold; it ignores free allowances and includes message rounding overhead, so it may overestimate the first profitable volume.",
             "No customer records or communication are involved in this calculator.",
         ],
     }
