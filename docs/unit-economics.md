@@ -41,3 +41,13 @@ The comparison shows *no-paid-messaging workflow* and *hypothetical paid Busines
 5. Demand evidence from a prospective merchant before adding an autonomous AI agent or a live messaging integration.
 
 References: [ODI Global (2026-10-07)](https://odi.org/en/publications/e-commerce-and-international-trade-in-sri-lanka-findings-from-a-survey-of-953-exporters-and-importers/); [Meta Business Platform Terms](https://www.whatsapp.com/legal/meta-terms-whatsapp-business); [Meta pricing overview](https://business.whatsapp.com/products/platform-pricing).
+
+## Exact first-positive volume versus displayed cents (November 2, 2026)
+
+`orderpilot.discrete_break_even.first_profitable_volume` scans integer order volumes using `unit_economics.project`. It now uses the project's **unrounded** `commercially_positive_under_assumptions` flag, rather than comparing the displayed `monthly_lkr.net_value` string with zero. A genuine LKR 0.00018 surplus displays as `0.00` but is still strictly positive. This corrects a boundary error that could otherwise report a later break-even volume.
+
+For example, with one second saved per order, LKR 1/hour, and an *illustrative* LKR 0.0003 fixed subscription, the first order has a tiny negative net and the second has a tiny positive net. Both round to approximately zero cents, but the exact first-positive volume is **2 orders**. These microscopic prices are regression-test inputs, not realistic commercial offers.
+
+The exact search is **not** a sustained break-even guarantee: per-message ceilings and free allowances can make marginal net changes irregular. It also does not model multiple business phone numbers; use `orderpilot.merchant_roi.evaluate` for separately counted per-number messaging charges, without inferring a discrete threshold from the older single-allowance model. The search is O(max_orders) and should be run with a practical bound.
+
+Regression coverage: `python -m unittest tests.test_discrete_break_even_precision -v`. All prices, volumes and labor savings remain unverified scenario assumptions.
