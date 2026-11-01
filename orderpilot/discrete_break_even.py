@@ -4,7 +4,6 @@ Searches integer monthly volumes using the same rounded message counts and
 allowances as project(); does not assume that net value is monotonic.
 """
 from __future__ import annotations
-from decimal import Decimal
 from .unit_economics import project, MAX_VOLUME
 
 
@@ -17,12 +16,14 @@ def first_profitable_volume(*, max_orders: int = 10000, **scenario) -> dict:
     result = None
     for n in range(1, max_orders + 1):
         candidate = project(monthly_orders=n, **scenario)
-        if Decimal(candidate["monthly_lkr"]["net_value"]) > 0:
+        # project() evaluates exact Decimal net before rounding presentation
+        # strings to cents. A positive sub-cent margin must not look like zero.
+        if candidate["commercially_positive_under_assumptions"]:
             result = n
             break
     return {
         "mode": "HYPOTHETICAL_DISCRETE_FIRST_POSITIVE",
         "first_positive_monthly_orders": result,
         "searched_through": result if result is not None else max_orders,
-        "note": "First positive net value, not a sustained threshold. Costs are assumptions; displayed currency is rounded to cents.",
+        "note": "First strictly positive unrounded net value, not a sustained threshold. Costs are assumptions; displayed currency is rounded to cents.",
     }
