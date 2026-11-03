@@ -1,0 +1,27 @@
+{
+  "workloads": [
+    {
+      "monthly_orders": 100,
+      "service_messages_by_number": [
+        200
+      ],
+      "utility_messages": 100
+    },
+    {
+      "monthly_orders": 520,
+      "service_messages_by_number": [
+        1040
+      ],
+      "utility_messages": 520
+    }
+  ],
+  "subscription_prices_lkr": [
+    "2000",
+    "2500",
+    "3000"
+  ],
+  "seconds_saved_per_order": "60",
+  "hourly_lkr": "400",
+  "service_rate_lkr": "3",
+  "utility_rate_lkr": "3"
+}
