@@ -47,6 +47,40 @@ class GridReportTests(unittest.TestCase):
         self.assertEqual(canonical_json(a), canonical_json(b))
         self.assertTrue(canonical_json(a).endswith("\n"))
 
+    def test_direct_summary_rejects_duplicate_volumes(self):
+        grid = {"mode": "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION",
+                "scenario_count": 2,
+                "rows": [
+                    {"monthly_orders": 100, "prices": [
+                        {"subscription_lkr": "0.00", "positive_after_messaging_under_assumptions": True}]},
+                    {"monthly_orders": 100, "prices": [
+                        {"subscription_lkr": "0.00", "positive_after_messaging_under_assumptions": False}]},
+                ]}
+        with self.assertRaisesRegex(ValueError, "duplicate monthly order"):
+            summarize_grid(grid)
+
+    def test_direct_summary_rejects_inconsistent_price_sets(self):
+        grid = {"mode": "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION",
+                "scenario_count": 4,
+                "rows": [
+                    {"monthly_orders": 100, "prices": [
+                        {"subscription_lkr": "1.00", "positive_after_messaging_under_assumptions": True},
+                        {"subscription_lkr": "2.00", "positive_after_messaging_under_assumptions": False}]},
+                    {"monthly_orders": 200, "prices": [
+                        {"subscription_lkr": "1.00", "positive_after_messaging_under_assumptions": True},
+                        {"subscription_lkr": "3.00", "positive_after_messaging_under_assumptions": False}]},
+                ]}
+        with self.assertRaisesRegex(ValueError, "inconsistent price grid"):
+            summarize_grid(grid)
+
+    def test_direct_summary_rejects_incorrect_scenario_count(self):
+        grid = {"mode": "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION",
+                "scenario_count": 99,
+                "rows": [{"monthly_orders": 100, "prices": [
+                    {"subscription_lkr": "1.00", "positive_after_messaging_under_assumptions": True}]}]}
+        with self.assertRaisesRegex(ValueError, "scenario count"):
+            summarize_grid(grid)
+
     def test_reject_customer_identifiers(self):
         data = sample()
         data["customer_phone"] = "PRIVATE"
