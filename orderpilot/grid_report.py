@@ -20,11 +20,18 @@ def summarize_grid(grid: dict[str, Any]) -> dict[str, Any]:
     rows = grid.get("rows")
     if type(rows) is not list or not rows:
         raise ValueError("grid rows required")
+    if type(grid.get("scenario_count")) is not int or grid["scenario_count"] <= 0:
+        raise ValueError("invalid scenario count")
     prices: dict[str, list[tuple[int, bool]]] = {}
+    expected_prices = None
+    seen_volumes: set[int] = set()
     for row in rows:
         if type(row) is not dict or type(row.get("monthly_orders")) is not int:
             raise ValueError("invalid workload row")
         orders = row["monthly_orders"]
+        if not 1 <= orders <= 1_000_000 or orders in seen_volumes:
+            raise ValueError("invalid or duplicate monthly order volume")
+        seen_volumes.add(orders)
         entries = row.get("prices")
         if type(entries) is not list or not entries:
             raise ValueError("workload price entries required")
@@ -38,8 +45,12 @@ def summarize_grid(grid: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError("invalid or duplicate price result")
             seen.add(price)
             prices.setdefault(price, []).append((orders, positive))
-    if any(len(values) != len(rows) for values in prices.values()):
-        raise ValueError("inconsistent price grid")
+        if expected_prices is None:
+            expected_prices = seen
+        elif seen != expected_prices:
+            raise ValueError("inconsistent price grid")
+    if grid["scenario_count"] != len(rows) * len(expected_prices):
+        raise ValueError("scenario count does not match grid")
     summary = []
     for price, values in sorted(prices.items(), key=lambda item: item[0]):
         sorted_values = sorted(values)
