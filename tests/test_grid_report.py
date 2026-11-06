@@ -81,6 +81,31 @@ class GridReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "scenario count"):
             summarize_grid(grid)
 
+    def test_reject_unbounded_direct_grids(self):
+        grid = {"mode": "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION",
+                "scenario_count": 21, "rows": [
+                    {"monthly_orders": i + 1, "prices": [
+                        {"subscription_lkr": "1.00", "positive_after_messaging_under_assumptions": True}]}
+                    for i in range(21)]}
+        with self.assertRaisesRegex(ValueError, "1..20"):
+            summarize_grid(grid)
+        grid["rows"] = grid["rows"][:1]
+        grid["rows"][0]["prices"] = [
+            {"subscription_lkr": f"{i}.00", "positive_after_messaging_under_assumptions": True}
+            for i in range(11)]
+        with self.assertRaisesRegex(ValueError, "1..10"):
+            summarize_grid(grid)
+
+    def test_reject_noncanonical_and_nonfinite_direct_prices(self):
+        for bad in ("NaN", "Infinity", "-1.00", "1e3", "1.0", "0001.00", "100000001.00"):
+            with self.subTest(price=bad):
+                grid = {"mode": "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION",
+                        "scenario_count": 1, "rows": [{"monthly_orders": 10, "prices": [
+                            {"subscription_lkr": bad,
+                             "positive_after_messaging_under_assumptions": True}]}]}
+                with self.assertRaises(ValueError):
+                    summarize_grid(grid)
+
     def test_reject_customer_identifiers(self):
         data = sample()
         data["customer_phone"] = "PRIVATE"
