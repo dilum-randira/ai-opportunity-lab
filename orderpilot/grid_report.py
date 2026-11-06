@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from .merchant_grid_cli import parse_scenario
@@ -18,8 +19,8 @@ def summarize_grid(grid: dict[str, Any]) -> dict[str, Any]:
     if type(grid) is not dict or grid.get("mode") != "OFFLINE_HYPOTHETICAL_GRID_NOT_CUSTOMER_VALIDATION":
         raise ValueError("expected a validated hypothetical OrderPilot grid")
     rows = grid.get("rows")
-    if type(rows) is not list or not rows:
-        raise ValueError("grid rows required")
+    if type(rows) is not list or not 1 <= len(rows) <= 20:
+        raise ValueError("grid must contain 1..20 workload rows")
     if type(grid.get("scenario_count")) is not int or grid["scenario_count"] <= 0:
         raise ValueError("invalid scenario count")
     prices: dict[str, list[tuple[int, bool]]] = {}
@@ -33,15 +34,24 @@ def summarize_grid(grid: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("invalid or duplicate monthly order volume")
         seen_volumes.add(orders)
         entries = row.get("prices")
-        if type(entries) is not list or not entries:
-            raise ValueError("workload price entries required")
+        if type(entries) is not list or not 1 <= len(entries) <= 10:
+            raise ValueError("workload must contain 1..10 price entries")
         seen = set()
         for entry in entries:
             if type(entry) is not dict:
                 raise ValueError("invalid price entry")
             price = entry.get("subscription_lkr")
             positive = entry.get("positive_after_messaging_under_assumptions")
-            if type(price) is not str or type(positive) is not bool or price in seen:
+            if type(price) is not str or type(positive) is not bool:
+                raise ValueError("invalid price result")
+            try:
+                amount = Decimal(price)
+            except (InvalidOperation, ValueError) as exc:
+                raise ValueError("invalid price result") from exc
+            if (not amount.is_finite() or not 0 <= amount <= 100_000_000
+                    or price != f"{amount:.2f}" or amount.as_tuple().exponent != -2):
+                raise ValueError("price must be a canonical nonnegative LKR amount")
+            if price in seen:
                 raise ValueError("invalid or duplicate price result")
             seen.add(price)
             prices.setdefault(price, []).append((orders, positive))
@@ -49,6 +59,8 @@ def summarize_grid(grid: dict[str, Any]) -> dict[str, Any]:
             expected_prices = seen
         elif seen != expected_prices:
             raise ValueError("inconsistent price grid")
+    if len(rows) * len(expected_prices) > 100:
+        raise ValueError("grid exceeds 100 scenario cells")
     if grid["scenario_count"] != len(rows) * len(expected_prices):
         raise ValueError("scenario count does not match grid")
     summary = []
