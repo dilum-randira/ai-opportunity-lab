@@ -73,7 +73,8 @@ def report(pairs, *, monthly_orders: int, hourly_lkr: str,
            subscription_lkr: str, operating_lkr: str = '0') -> dict:
     stats = summarize(pairs)
     # When observed average time savings are negative, avoid a false claim of benefit.
-    raw_saved = Decimal(stats['mean_seconds_saved'])
+    # Use the unrounded observed mean: display rounding can hide small savings.
+    raw_saved = sum((before - after for before, after, _, _ in pairs), Decimal(0)) / len(pairs)
     roi = estimate_roi(orders_per_month=monthly_orders,
                        seconds_saved_per_order=max(raw_saved, Decimal(0)),
                        hourly_lkr=hourly_lkr, monthly_subscription_lkr=subscription_lkr,
