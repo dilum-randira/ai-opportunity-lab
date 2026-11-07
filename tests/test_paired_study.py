@@ -30,6 +30,23 @@ class PairedStudyTests(unittest.TestCase):
         self.assertEqual(result['cost_scenario']['gross_labor_value_lkr'], '0.00')
         self.assertEqual(result['cost_scenario']['net_monthly_value_lkr'], '-100.00')
 
+    def test_subcent_positive_saving_uses_exact_mean_for_roi(self):
+        # 0.004 seconds rounds to 0.00 in the descriptive summary.
+        items = [(Decimal('1.004'), Decimal('1'), 0, 0)]
+        outcome = report(items, monthly_orders=100000, hourly_lkr='3600',
+                         subscription_lkr='0')
+        self.assertEqual(outcome['timings']['mean_seconds_saved'], '0.00')
+        self.assertEqual(outcome['cost_scenario']['gross_labor_value_lkr'], '400.00')
+        self.assertFalse(outcome['assistance_slowed_average'])
+
+    def test_subcent_negative_saving_flags_adverse_outcome(self):
+        items = [(Decimal('1'), Decimal('1.004'), 0, 0)]
+        outcome = report(items, monthly_orders=100000, hourly_lkr='3600',
+                         subscription_lkr='100')
+        self.assertEqual(outcome['timings']['mean_seconds_saved'], '-0.00')
+        self.assertTrue(outcome['assistance_slowed_average'])
+        self.assertEqual(outcome['cost_scenario']['gross_labor_value_lkr'], '0.00')
+
     def test_reject_identifier_and_duplicate_headers(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'study.csv'
