@@ -35,7 +35,8 @@ def screen(*, study_kind: str, pairs: list, consenting_merchants: int,
     """Screen aggregate evidence; never accept names, IDs, or message contents.
 
     `study_kind` must explicitly distinguish consented observations from
-    synthetic exercises. A positive result remains an internal review cue only.
+    synthetic exercises. Each pair represents a different consenting merchant;
+    repeated observations from the same merchant must not be supplied. A positive result remains an internal review cue only.
     """
     if study_kind not in ("synthetic", "consented_aggregate"):
         raise ValueError("study_kind must be synthetic or consented_aggregate")
@@ -46,6 +47,11 @@ def screen(*, study_kind: str, pairs: list, consenting_merchants: int,
         raise ValueError("merchant outcome counts cannot exceed consenting merchants")
     if not isinstance(pairs, list) or not 1 <= len(pairs) <= 5000:
         raise ValueError("pairs must contain 1..5000 observations")
+    # One independently sampled pair per merchant. Without anonymous grouping,
+    # repeated observations cannot be treated as independent merchant evidence.
+    # Fail closed rather than inflate the descriptive bootstrap sample size.
+    if len(pairs) > merchants:
+        raise ValueError("pairs cannot exceed consenting merchants: use one pair per merchant")
     cleaned = []
     for row in pairs:
         if not isinstance(row, (tuple, list)) or len(row) != 4:
@@ -86,6 +92,7 @@ def screen(*, study_kind: str, pairs: list, consenting_merchants: int,
         "consenting_merchants": merchants,
         "cautions": [
             "Self-reported consent is not verified by this offline function.",
+            "One pair per distinct consenting merchant is required but cannot be verified offline.",
             "Bootstrap bounds are descriptive, not causal or population guarantees.",
             "Modeled profitability is not willingness-to-pay evidence.",
             "No outreach, deployment, payments, or publication of private observations is authorized.",
