@@ -8,7 +8,7 @@ class PilotGateTests(unittest.TestCase):
     def setUp(self):
         self.pairs = [(Decimal("120"), Decimal("60"), 1, 0)] * 24
         self.kwargs = dict(study_kind="consented_aggregate", pairs=self.pairs,
-                           consenting_merchants=5, merchants_reporting_repeated_pain=3,
+                           consenting_merchants=24, merchants_reporting_repeated_pain=3,
                            merchants_discussing_price=2, modeled_net_lkr="1200")
 
     def test_positive_screen_requires_all_checks(self):
@@ -40,12 +40,22 @@ class PilotGateTests(unittest.TestCase):
                            "merchants_reporting_repeated_pain": 1, "merchants_discussing_price": 1})
         self.assertFalse(result["checks"]["screening_sample_target"])
 
+    def test_repeated_observations_cannot_inflate_merchant_sample(self):
+        # Twenty-four observations from only five merchants are not 24
+        # independent merchant-level observations.
+        with self.assertRaisesRegex(ValueError, "pairs cannot exceed"):
+            screen(**{**self.kwargs, "consenting_merchants": 5})
+
+    def test_one_pair_per_merchant_remains_eligible(self):
+        result = screen(**self.kwargs)
+        self.assertTrue(result["checks"]["screening_sample_target"])
+
     def test_invalid_study_kind_and_merchant_counts(self):
         for change in (
             {"study_kind": "real"},
             {"consenting_merchants": True},
-            {"merchants_reporting_repeated_pain": 6},
-            {"merchants_discussing_price": 6},
+            {"merchants_reporting_repeated_pain": 25},
+            {"merchants_discussing_price": 25},
             {"consenting_merchants": -1},
         ):
             with self.subTest(change=change), self.assertRaises(ValueError):
