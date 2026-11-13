@@ -45,6 +45,9 @@ def merchant_bootstrap(pairs: list, *, replicates: int = 2000, seed: int = 0) ->
     return {
         "merchant_count": n,
         "replicates": replicates,
+        "observed_positive_merchant_count": sum(x > 0 for x in savings),
+        "observed_nonpositive_merchant_count": sum(x <= 0 for x in savings),
+        "small_sample_caution": n < 20,
         "seed": seed,
         "mean_saving_seconds": str(sum(savings, Decimal(0)) / n),
         "bootstrap_p025_seconds": str(lower),
