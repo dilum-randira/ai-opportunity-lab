@@ -25,6 +25,17 @@ class MerchantBootstrapTests(unittest.TestCase):
         self.assertLessEqual(Decimal("0"), Decimal(first["bootstrap_fraction_positive"]))
         self.assertLessEqual(Decimal(first["bootstrap_fraction_positive"]), Decimal("1"))
 
+    def test_observed_sign_counts_and_small_sample_caution(self):
+        rows = [(10, 5, 0, 0), (10, 10, 0, 0), (10, 12, 0, 0)]
+        report = merchant_bootstrap(rows, replicates=100, seed=1)
+        self.assertEqual(report["observed_positive_merchant_count"], 1)
+        self.assertEqual(report["observed_nonpositive_merchant_count"], 2)
+        self.assertTrue(report["small_sample_caution"])
+        large = merchant_bootstrap([(10, 5, 0, 0)] * 20, replicates=100)
+        self.assertEqual(large["observed_positive_merchant_count"], 20)
+        self.assertEqual(large["observed_nonpositive_merchant_count"], 0)
+        self.assertFalse(large["small_sample_caution"])
+
     def test_negative_savings_not_silently_zeroed(self):
         result = merchant_bootstrap([(1, 4, 0, 0)] * 2, replicates=100)
         self.assertEqual(result["bootstrap_p975_seconds"], "-3")
