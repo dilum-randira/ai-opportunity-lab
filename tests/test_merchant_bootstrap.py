@@ -30,10 +30,15 @@ class MerchantBootstrapTests(unittest.TestCase):
         report = merchant_bootstrap(rows, replicates=100, seed=1)
         self.assertEqual(report["observed_positive_merchant_count"], 1)
         self.assertEqual(report["observed_nonpositive_merchant_count"], 2)
+        self.assertEqual(report["observed_zero_merchant_count"], 1)
+        self.assertEqual(report["observed_negative_merchant_count"], 1)
+        self.assertEqual(report["observed_positive_merchant_count"] + report["observed_zero_merchant_count"] + report["observed_negative_merchant_count"], report["merchant_count"])
         self.assertTrue(report["small_sample_caution"])
         large = merchant_bootstrap([(10, 5, 0, 0)] * 20, replicates=100)
         self.assertEqual(large["observed_positive_merchant_count"], 20)
         self.assertEqual(large["observed_nonpositive_merchant_count"], 0)
+        self.assertEqual(large["observed_zero_merchant_count"], 0)
+        self.assertEqual(large["observed_negative_merchant_count"], 0)
         self.assertFalse(large["small_sample_caution"])
 
     def test_negative_savings_not_silently_zeroed(self):
