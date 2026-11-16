@@ -58,7 +58,7 @@ class CostSourceTests(unittest.TestCase):
             "https://example.com/pricing#unverified",
             "https://example.com./pricing",
             "https://bad_host.example/pricing",
-            "https://example.com/pricing\\n",
+            "https://example.com/pricing\n",
         )
         for url in unsafe_urls:
             with self.subTest(url=url), self.assertRaises(ValueError):
