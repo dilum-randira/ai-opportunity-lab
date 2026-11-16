@@ -21,3 +21,18 @@ assert report["verified_provider_prices"] == 0
 **Buyer validation still missing:** interviews with consenting Sri Lankan social-commerce merchants, baseline order volumes, actual manual entry times, measured errors, willingness-to-pay responses, and consented pilot results. Keep such records private; publish only non-identifying aggregates. No demand, ROI, or pricing claim is established by this validator.
 
 Run `python -m unittest discover -s tests -v` before merging changes. This module is intentionally offline and standard-library-only.
+
+## Public reference URL hardening — 2026-11-17
+
+Public price-list and provider-quote references must use an HTTPS URL with a
+DNS-style hostname. The validator rejects bare hostnames such as `localhost`,
+IP literals (including loopback and private addresses), userinfo credentials,
+nonstandard ports, URL fragments, invalid DNS labels, and embedded whitespace or
+control characters. Standard HTTPS port 443 and query strings remain supported.
+
+This is a **reference hygiene** check, not a network security boundary: the
+validator never fetches a URL, cannot confirm DNS resolution or redirects, and
+does not establish that a domain is owned by a provider. Do not reuse these
+checks as an SSRF defense for any future URL-fetching feature. Human review of
+official sources, country applicability, taxes, currency, billing units, and
+retrieval date remains mandatory.
