@@ -46,3 +46,31 @@ class CostSourceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_cost_sources([{**self.row, "phone": "private"}],
                                   as_of="2026-11-16")
+
+    def test_local_or_ambiguous_public_urls_rejected(self):
+        unsafe_urls = (
+            "https://localhost/pricing",
+            "https://127.0.0.1/pricing",
+            "https://192.168.1.1/pricing",
+            "https://[::1]/pricing",
+            "https://example.com:8443/pricing",
+            "https://example.com:bad/pricing",
+            "https://example.com/pricing#unverified",
+            "https://example.com./pricing",
+            "https://bad_host.example/pricing",
+            "https://example.com/pricing\\n",
+        )
+        for url in unsafe_urls:
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                validate_cost_sources([{**self.row, "kind": "public_price_list",
+                                        "source_url": url}], as_of="2026-11-16")
+
+    def test_valid_public_https_pricing_path_with_query(self):
+        for url in ("https://example.com/pricing?country=LK",
+                    "https://example.com:443/pricing"):
+            with self.subTest(url=url):
+                report = validate_cost_sources(
+                    [{**self.row, "kind": "public_price_list", "source_url": url}],
+                    as_of="2026-11-16")
+                self.assertEqual(report["verified_provider_prices"], 0)
+                self.assertTrue(report["entries"][0]["requires_manual_verification"])
