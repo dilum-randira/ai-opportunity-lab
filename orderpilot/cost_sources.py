@@ -3,6 +3,7 @@
 No network calls are made. Validation never establishes that a price is real.
 """
 from datetime import date
+from ipaddress import ip_address
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlsplit
 
@@ -56,9 +57,29 @@ def validate_cost_sources(rows: list, *, as_of: str) -> dict:
         else:
             try:
                 parsed = urlsplit(url)
-                valid = (parsed.scheme == "https" and parsed.hostname
-                         and not parsed.username and not parsed.password
-                         and not any(c.isspace() for c in url))
+                host = parsed.hostname
+                try:
+                    ip_address(host or "")
+                    is_ip = True
+                except ValueError:
+                    is_ip = False
+                labels = (host or "").split(".")
+                public_dns_name = (
+                    len(labels) >= 2 and all(
+                        label and len(label) <= 63
+                        and label[0].isascii() and label[-1].isascii()
+                        and label[0].isalnum() and label[-1].isalnum()
+                        and all(c.isascii() and (c.isalnum() or c == "-") for c in label)
+                        for label in labels
+                    )
+                )
+                valid = bool(
+                    parsed.scheme == "https" and public_dns_name and not is_ip
+                    and not parsed.username and not parsed.password
+                    and parsed.port in (None, 443)
+                    and not parsed.fragment
+                    and not any(ord(c) < 33 or ord(c) == 127 for c in url)
+                )
             except ValueError:
                 valid = False
             if not valid:
