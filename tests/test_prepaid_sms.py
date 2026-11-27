@@ -27,3 +27,12 @@ class PrepaidTests(unittest.TestCase):
                      (1,"1","500","-1")]:
             with self.subTest(args=args), self.assertRaises(ValueError):
                 estimate_prepaid(*args)
+
+    def test_extreme_exponents(self):
+        for value in ("1e-1000000000", Decimal("1e-1000000000")):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                estimate_prepaid(1, value, "500")
+        self.assertEqual(estimate_prepaid(1, "0e-1000000000", "500").consumed,
+                         Decimal("0"))
+        self.assertEqual(estimate_prepaid(1, "0.84000", "500").consumed,
+                         Decimal("0.84"))
