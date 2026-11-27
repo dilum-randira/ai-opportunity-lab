@@ -20,6 +20,15 @@ def _cents(value):
         raise ValueError("Invalid amount") from exc
     if not amount.is_finite() or amount < 0 or amount > 10**9:
         raise ValueError("Amount must be finite, nonnegative and at most 1 billion")
+    # Reject sub-cent values before constructing potentially huge denominators.
+    if amount.is_zero():
+        return 0
+    _, digits, exponent = amount.as_tuple()
+    if exponent < -2:
+        excess = -2 - exponent
+        if excess >= len(digits) or any(digits[-excess:]):
+            raise ValueError("Amounts must be exact to cents")
+        amount = Decimal((0, digits[:-excess], -2))
     numerator, denominator = amount.as_integer_ratio()
     cents, remainder = divmod(numerator * 100, denominator)
     if remainder:
